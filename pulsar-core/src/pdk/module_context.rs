@@ -109,28 +109,22 @@ impl ModuleContext {
         self.daemon_handle.clone()
     }
 
-    /// Get a [`tokio::sync::watch::Receiver`] of typed [`Result<T, String>`] for the module configuration.
+    /// Get a [`Result<T, String>`] for the module configuration.
     ///
     /// It can be used to receive always the last configuration without stop the module.
     ///
     /// It receives an [`Err`] if the configuration doesn't parse correctly.
-    pub fn get_cfg<T>(&self) -> watch::Receiver<Result<T, ConfigError>>
+    pub fn config<T>(&self) -> Result<T, ConfigError>
     where
         T: Send + Sync + 'static,
         for<'foo> T: TryFrom<&'foo ModuleConfig, Error = ConfigError>,
     {
-        let mut rx_raw = self.cfg.clone();
-        let initial_value = T::try_from(&rx_raw.borrow());
-        let (tx_converted, rx_converted) = watch::channel(initial_value);
+        T::try_from(&self.cfg.borrow())
+    }
 
-        tokio::spawn(async move {
-            while rx_raw.changed().await.is_ok() {
-                let new_value = T::try_from(&rx_raw.borrow());
-                let _ = tx_converted.send_replace(new_value);
-            }
-        });
-
-        rx_converted
+    /// Get notified of a configuration change.
+    pub async fn config_update(&mut self) {
+        let _ = self.cfg.changed().await;
     }
 
     pub fn get_bpf_context(&self) -> BpfContext {
