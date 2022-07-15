@@ -12,6 +12,8 @@ members = [
     "bpf-common",
     "engine-api",
     "validatron",
+    "xtask",
+    "test-suite",
 ]
 
 [profile.release]
