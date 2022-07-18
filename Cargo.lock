@@ -910,8 +910,6 @@ dependencies = [
 [[package]]
 name = "libtest-mimic"
 version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc195aab5b803465bf614a5a4765741abce6c8d64e7d8ca57acd2923661fba9f"
 dependencies = [
  "clap",
  "crossbeam-channel",
@@ -1826,6 +1824,7 @@ dependencies = [
  "file-system-monitor",
  "inventory",
  "libtest-mimic",
+ "log",
  "tokio",
 ]
 
