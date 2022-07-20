@@ -2,7 +2,6 @@ use pulsar_core::pdk::{
     CleanExit, ConfigError, Event, ModuleConfig, ModuleContext, ModuleError, PulsarModule,
     ShutdownSignal, Version,
 };
-use tokio::sync::watch;
 
 const MODULE_NAME: &str = "logger";
 
@@ -11,18 +10,17 @@ pub fn module() -> PulsarModule {
 }
 
 async fn logger_task(
-    ctx: ModuleContext,
+    mut ctx: ModuleContext,
     mut shutdown: ShutdownSignal,
 ) -> Result<CleanExit, ModuleError> {
     let mut receiver = ctx.get_receiver();
-    let mut rx_config = ctx.get_cfg::<Config>();
-    let mut logger = Logger::from_config(&rx_config)?;
+    let mut logger = Logger::from_config(ctx.config()?);
 
     loop {
         tokio::select! {
             r = shutdown.recv() => return r,
-            _ = rx_config.changed() => {
-                logger = Logger::from_config(&rx_config)?;
+            _ = ctx.config_update() => {
+                logger = Logger::from_config(ctx.config()?);
             }
             msg = receiver.recv() => {
                 let msg = msg?;
@@ -58,11 +56,10 @@ struct Logger {
 }
 
 impl Logger {
-    fn from_config(
-        rx_config: &watch::Receiver<Result<Config, ConfigError>>,
-    ) -> Result<Self, ModuleError> {
-        let Config { console } = rx_config.borrow().clone()?;
-        Ok(Self { console })
+    fn from_config(config: Config) -> Self {
+        Self {
+            console: config.console,
+        }
     }
 
     fn process(&self, event: &Event) {
